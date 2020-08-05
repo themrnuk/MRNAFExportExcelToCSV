@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AzureFunctionsVersion>v3</AzureFunctionsVersion>
+    <UserSecretsId>e99dbcc1-7b18-4305-9517-7394f3f61c02</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="ExcelToCsv1.cs" />
+    <Compile Remove="MSPApiList.cs" />
+    <Compile Remove="MSPDataImp.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ExcelDataReader" Version="3.6.0" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
+    <PackageReference Include="ExcelNumberFormat" Version="1.0.10" />
+    <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="11.1.7" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="3.0.10" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.17.0" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.3" />
+    <PackageReference Include="SharePointPnPCoreOnline" Version="3.22.2006.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="local.settings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+</Project>
