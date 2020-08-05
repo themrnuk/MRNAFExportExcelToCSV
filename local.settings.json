@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=mrndl;AccountKey=XX363LgxN3relvgyE3N38ffTQOzkvs8E1wb20cTHZlktPcOc7zCE+VlhIUaF6hsdtpKG3iQmSvr+jxW/ktVT5g==;EndpointSuffix=core.windows.net",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "DefaultEndpointsProtocol=https;AccountName=mrndl;AccountKey=XX363LgxN3relvgyE3N38ffTQOzkvs8E1wb20cTHZlktPcOc7zCE+VlhIUaF6hsdtpKG3iQmSvr+jxW/ktVT5g==;EndpointSuffix=core.windows.net",
+    "ContainerName": "importfiles"
+  }
+}
