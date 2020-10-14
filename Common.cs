@@ -29,6 +29,9 @@ namespace MRNAFExportExcelToCSV
         internal static readonly string BaseUrl = "https://themrn.sharepoint.com";
         private static readonly string userName = "mahavir.rawat@themrn.co.uk";
         private static readonly string password = "HeavenlyHappy270420£";
+
+        //private static readonly string userName = "PWAAccess@themrn.co.uk";
+        //private static readonly string password = "MRN123User";
         private static SecureString secureString   // property
         {
             get
