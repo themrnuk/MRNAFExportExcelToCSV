@@ -39,12 +39,16 @@ namespace MRNAFExportExcelToCSV
            .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
            .AddEnvironmentVariables()
            .Build();
-            string defaultContainerName= config.GetConnectionStringOrSetting("ContainerName");
+
+            string defaultContainerName = config.GetConnectionStringOrSetting("ContainerName");
 
             List<ExcelSheets> excelSheets = new List<ExcelSheets>();
             List<AdditionalColumns> additionalColumns = new List<AdditionalColumns>();
 
             string folderPath = string.Empty;
+
+            bool onlyFixedColumns = false;
+            int columnCount = -1;
 
             int headerRow = 0;
             if (name.Contains("/"))
@@ -64,7 +68,7 @@ namespace MRNAFExportExcelToCSV
                     excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "Govn_Tracker", CsvFileName = "Vendor_Governance.csv" }
                          };
 
-                    folderPath = defaultContainerName+ "/Vendors/{0}";
+                    folderPath = defaultContainerName + "/Vendors/{0}";
                 }
                 else if (name.ToLower().StartsWith("vendor scorecard tracker"))
                 {
@@ -157,8 +161,18 @@ namespace MRNAFExportExcelToCSV
 
                          };
                         additionalColumns.Add(new AdditionalColumns() { ColumnName = "PROJECT NUMBER", ColumnValue = namearray[0] });
-                        folderPath = defaultContainerName + "/Project Issue Logs/{0}";
+                        folderPath = defaultContainerName + "/PIL/{0}";
                     }
+                }
+                else if (name.ToLower().StartsWith("old hts opportunities"))
+                {
+                    headerRow = 0;
+                    excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "Sheet3", CsvFileName = $"Historic_Projects.csv" }
+
+                         };
+                    onlyFixedColumns = true;
+                    columnCount = 2;
+                    folderPath = defaultContainerName + "/Other/{0}";
                 }
                 else
                 {
@@ -182,9 +196,14 @@ namespace MRNAFExportExcelToCSV
                         folderPath = defaultContainerName + "/PT/{0}";
                     }
                 }
+                additionalColumns.Add(new AdditionalColumns() { ColumnName = "SOURCE_SPREAD_SHEET", ColumnValue = name });
+                additionalColumns.Add(new AdditionalColumns() { ColumnName = "TIMEDATE_SNAPSHOT", ColumnValue = DateTime.Now.ToString("dd'/'MM'/'yyyy HH:mm:ss") });
+                additionalColumns.Add(new AdditionalColumns() { ColumnName = "SOURCE_SHEET", ColumnValue = string.Empty });
+                additionalColumns.Add(new AdditionalColumns() { ColumnName = "CELL_RANGE", ColumnValue = string.Empty });
+
             }
 
-           
+
             log.LogInformation($"Do your processing on the excelFileInput file here.");
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
             using (excelFileInput)
@@ -231,14 +250,21 @@ namespace MRNAFExportExcelToCSV
                             try
                             {
                                 string additionaHeaders = string.Join("|", additionalColumns.Select(c => c.ColumnName));
-                                string additionaHeadersValues = string.Join("|", additionalColumns.Select(c => c.ColumnValue));
+                                string additionaHeadersValues = string.Empty;
                                 while (reader.Read())
                                 {
 
                                     List<string> arr = new List<string>();
+                                    int lastNotEmptyCellIndex = 0;
+                                    string headerColumnRange = string.Empty;
                                     if (rowIndex == headerRow)
                                     {
-                                        for (int headerCellIndex = 0; headerCellIndex < reader.FieldCount; headerCellIndex++)
+                                        AdditionalColumns sourceSheetColumn = additionalColumns.LastOrDefault(c => c.ColumnName == "SOURCE_SHEET");
+                                        sourceSheetColumn.ColumnValue = reader.Name;
+                                        AdditionalColumns cellRangeColumn = additionalColumns.LastOrDefault(c => c.ColumnName == "CELL_RANGE");
+
+                                        int fieldCount = onlyFixedColumns ? columnCount : reader.FieldCount;
+                                        for (int headerCellIndex = 0; headerCellIndex < fieldCount; headerCellIndex++)
                                         {
                                             string cellText = string.Empty;
                                             try
@@ -264,9 +290,17 @@ namespace MRNAFExportExcelToCSV
                                                 {
                                                     cellText = cellText.ToUpper().Trim();
                                                 }
+                                                if (arr.Count == 0)
+                                                {
+                                                    cellRangeColumn.ColumnValue = $"{GetExcelColumnName(headerCellIndex + 1)}{headerRow + 1}";
+                                                }
+                                                lastNotEmptyCellIndex = headerCellIndex;
                                                 arr.Add(cellText);
                                             }
                                         }
+
+                                        cellRangeColumn.ColumnValue = $"{cellRangeColumn.ColumnValue}:{GetExcelColumnName(lastNotEmptyCellIndex + 1)}{headerRow + 1}";
+                                        additionaHeadersValues = string.Join("|", additionalColumns.Select(c => c.ColumnValue));
                                     }
                                     else if (rowIndex >= headerRow + 1)
                                     {
@@ -426,6 +460,22 @@ namespace MRNAFExportExcelToCSV
                 log.LogError(ex.Message);
             }
             return string.Empty;
+        }
+
+        static string GetExcelColumnName(int columnNumber)
+        {
+            int dividend = columnNumber;
+            string columnName = String.Empty;
+            int modulo;
+
+            while (dividend > 0)
+            {
+                modulo = (dividend - 1) % 26;
+                columnName = Convert.ToChar(65 + modulo).ToString() + columnName;
+                dividend = (int)((dividend - modulo) / 26);
+            }
+
+            return columnName;
         }
     }
 }
