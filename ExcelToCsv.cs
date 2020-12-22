@@ -236,9 +236,9 @@ namespace MRNAFExportExcelToCSV
                             continue;
                         }
 
+                        var currentSheet = excelSheets.FirstOrDefault(e => e.SheetName == reader.Name.Trim());
 
-                        var csvFile = excelSheets.FirstOrDefault(e => e.SheetName == reader.Name.Trim()).CsvFileName;
-                        string csvFilePath = string.Format(folderPath, csvFile);
+                        string csvFilePath = string.Format(folderPath, currentSheet.CsvFileName);
                         var csvContent = string.Empty;
                         BlobAttribute blob = new BlobAttribute(csvFilePath, FileAccess.Write);
 
@@ -249,8 +249,10 @@ namespace MRNAFExportExcelToCSV
                             List<int> writablecolumns = new List<int>();
                             try
                             {
-                                string additionaHeaders = string.Join("|", additionalColumns.Select(c => c.ColumnName));
+                                string additionaHeaders = string.Empty;
                                 string additionaHeadersValues = string.Empty;
+                                int patient_columnindex = -1;
+                                string patient_columndefaultvalue = "99999999";
                                 while (reader.Read())
                                 {
 
@@ -299,7 +301,28 @@ namespace MRNAFExportExcelToCSV
                                             }
                                         }
 
+
+                                        if (currentSheet.CsvFileName.StartsWith("INN_PT_"))
+                                        {
+                                            if (additionalColumns.Any(c => c.ColumnName == "PATIENT ID"))
+                                            {
+                                                var patientColumn = additionalColumns.FirstOrDefault(c => c.ColumnName == "PATIENT ID");
+                                                additionalColumns.Remove(patientColumn);
+                                            }
+
+                                            if (currentSheet.SheetName == "Referral Tracker" || currentSheet.SheetName == "Patient Nurse List" || currentSheet.SheetName == "Visit Scheduler")
+                                            {
+                                                patient_columnindex = arr.FindIndex(a => a == "PATIENT ID");
+                                                if (patient_columnindex == -1 && !additionalColumns.Any(c => c.ColumnName == "PATIENT ID"))
+                                                {
+                                                    additionalColumns.Add(new AdditionalColumns() { ColumnName = "PATIENT ID", ColumnValue = patient_columndefaultvalue });
+                                                }
+                                            }
+                                        }
+
+
                                         cellRangeColumn.ColumnValue = $"{cellRangeColumn.ColumnValue}:{GetExcelColumnName(lastNotEmptyCellIndex + 1)}{headerRow + 1}";
+                                        additionaHeaders = string.Join("|", additionalColumns.Select(c => c.ColumnName));
                                         additionaHeadersValues = string.Join("|", additionalColumns.Select(c => c.ColumnValue));
                                     }
                                     else if (rowIndex >= headerRow + 1)
@@ -324,6 +347,11 @@ namespace MRNAFExportExcelToCSV
                                             if (cellText.Contains("|") || cellText.Contains("\"") || cellText.Contains("\n") || cellText.Contains("\r") || cellText.Contains("\f") || cellText.Contains("\b") || cellText.Contains("\t"))
                                             {
                                                 cellText = string.Format("\"{0}\"", cellText.Replace("\"", "\"\""));
+                                            }
+                                            cellText = cellText.Trim();
+                                            if (string.IsNullOrWhiteSpace(cellText) && writablecolumnIndex == patient_columnindex && patient_columnindex > -1)
+                                            {
+                                                cellText = patient_columndefaultvalue;
                                             }
                                             arr.Add(cellText);
                                         }
