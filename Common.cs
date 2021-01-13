@@ -28,7 +28,7 @@ namespace MRNAFExportExcelToCSV
     {
         internal static readonly string BaseUrl = "https://themrn.sharepoint.com";
         private static readonly string userName = "mahavir.rawat@themrn.co.uk";
-        private static readonly string password = "HeavenlyHappy270420£";
+        private static readonly string password = "Celebrated161220%";
         private static SecureString secureString   // property
         {
             get
@@ -44,7 +44,7 @@ namespace MRNAFExportExcelToCSV
         {
             get
             {
-              return  new SharePointOnlineCredentials(userName, secureString);
+                return new SharePointOnlineCredentials(userName, secureString);
             }
         }
 

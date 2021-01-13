@@ -10,11 +10,12 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Azure.Storage;
+//using Microsoft.Azure.Storage;
 using Newtonsoft.Json.Linq;
-using Microsoft.Azure.Storage.Blob;
+//using Microsoft.Azure.Storage.Blob;
 using System.Security;
 using Microsoft.SharePoint.Client;
+using Microsoft.WindowsAzure.Storage;
 //using Microsoft.Graph;
 
 namespace MRNAFExportExcelToCSV
@@ -87,7 +88,7 @@ namespace MRNAFExportExcelToCSV
                     var blobClient = storageAccount.CreateCloudBlobClient();
                     var container = blobClient.GetContainerReference(defaultContainerName);
                     var destBlob = container.GetBlockBlobReference($"MSP/{jsonFile}");
-                    destBlob.UploadText(JObject.Parse(jsonData)["value"].ToString());                   
+                    await destBlob.UploadTextAsync(JObject.Parse(jsonData)["value"].ToString());                   
                     MSPResponseDataApi mspResponseDataApi = new MSPResponseDataApi();
                     mspResponseDataApi.JsonFileName = jsonFile;                    
                     return new OkObjectResult(mspResponseDataApi);

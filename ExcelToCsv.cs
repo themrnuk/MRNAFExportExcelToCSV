@@ -9,13 +9,14 @@ using System.Text.RegularExpressions;
 //using System.Threading;
 using ExcelDataReader;
 using ExcelNumberFormat;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Blob;
+//using Microsoft.Azure.Storage;
+//using Microsoft.Azure.Storage.Blob;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
+using Microsoft.WindowsAzure.Storage;
 
 namespace MRNAFExportExcelToCSV
 {
@@ -187,6 +188,31 @@ namespace MRNAFExportExcelToCSV
                     columnCount = 2;
                     folderPath = defaultContainerName + "/Other/{0}";
                 }
+                else if (name.ToLower().Contains("ops sheet"))
+                {
+                    headerRow = 2;
+                    var namearray = name.Split("#");
+                    if (namearray.Length < 2)
+                    {
+                        errMsg = ($"unable to convert file: {name} into csv.Invalid file Name.");
+                    }
+                    else
+                    {
+                        string projectNumber = string.Empty;
+                        for (int digit = 0; digit < namearray[1].Length; digit++)
+                        {
+                            if (Char.IsDigit(namearray[1][digit]))
+                                projectNumber += namearray[1][digit];
+                            else break;
+                        }
+
+                        headerRow = 2;
+                        excelSheets = new List<ExcelSheets>() { new ExcelSheets() { SheetName = "Unit", CsvFileName = $"Ops_Unit_{projectNumber}.csv" }
+                        };
+                        additionalColumns.Add(new AdditionalColumns() { ColumnName = "PROJECT NUMBER", ColumnValue = projectNumber });
+                        folderPath = defaultContainerName + "/OPS/{0}";
+                    }
+                }
                 else
                 {
                     var namearray = name.Split("_");
@@ -299,6 +325,10 @@ namespace MRNAFExportExcelToCSV
                                                             log.LogError(ex.Message);
                                                         }
 
+                                                        if (currentSheet.SheetName == "Unit" && headerCellIndex == 0  )
+                                                        {
+                                                            cellText = "TYPE";
+                                                        }
                                                         cellText = cellText.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ").Trim();
                                                         cellText = Regex.Replace(cellText, @"\s+", " ");
 
@@ -320,6 +350,7 @@ namespace MRNAFExportExcelToCSV
                                                             lastNotEmptyCellIndex = headerCellIndex;
                                                             arr.Add(cellText);
                                                         }
+                                                        
                                                     }
 
 
@@ -370,6 +401,13 @@ namespace MRNAFExportExcelToCSV
                                                             cellText = string.Format("\"{0}\"", cellText.Replace("\"", "\"\""));
                                                         }
                                                         cellText = cellText.Trim();
+                                                        if (currentSheet.SheetName == "Unit" )
+                                                        {
+                                                            if (dataCellIndex == 0 && !(cellText.ToUpper() == "NURSE TRAINING" || cellText.ToUpper() == "VISITS"))
+                                                            {
+                                                                break;
+                                                            }
+                                                        }
                                                         if (string.IsNullOrWhiteSpace(cellText) && writablecolumnIndex == patient_columnindex && patient_columnindex > -1)
                                                         {
                                                             cellText = patient_columndefaultvalue;
@@ -476,10 +514,10 @@ namespace MRNAFExportExcelToCSV
             var destBlob = container.GetBlockBlobReference($"Excels/Archive/{name}"); // ==> Copy source blob to destination container
 
 
-            destBlob.StartCopy(blockBlob);
+            destBlob.StartCopyAsync(blockBlob);
             //remove source blob after copy is done.            
 
-            blockBlob.DeleteIfExists();// ==> Delete blob
+            blockBlob.DeleteIfExistsAsync();// ==> Delete blob
 
 
 
