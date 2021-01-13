@@ -234,7 +234,10 @@ namespace MRNAFExportExcelToCSV
                         folderPath = defaultContainerName + "/PT/{0}";
                     }
                 }
-                if (string.IsNullOrWhiteSpace(errMsg))
+                
+            }
+
+			if (string.IsNullOrWhiteSpace(errMsg))
                 {
                     additionalColumns.Add(new AdditionalColumns() { ColumnName = "SOURCE_SPREAD_SHEET", ColumnValue = name });
                     additionalColumns.Add(new AdditionalColumns() { ColumnName = "TIMEDATE_SNAPSHOT", ColumnValue = DateTime.Now.ToString("dd'/'MM'/'yyyy HH:mm:ss") });
@@ -485,7 +488,6 @@ namespace MRNAFExportExcelToCSV
 
                     }
                 }
-
                 else
                 {
                     log.LogError(errMsg);
@@ -499,9 +501,6 @@ namespace MRNAFExportExcelToCSV
                     obj.DateCreated = DateTime.Now;
                     SaveErrorLogsToTable(obj, log);
                 }
-            }
-
-
            
 
             var archiveFolder = config.GetConnectionStringOrSetting("ArchiveFolder");
