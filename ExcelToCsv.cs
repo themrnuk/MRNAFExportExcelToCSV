@@ -45,7 +45,7 @@ namespace MRNAFExportExcelToCSV
     public static class ExcelToCsv
     {
         [FunctionName("ExcelToCsv")]
-        public static void Run([BlobTrigger("%ContainerName%/Excels/{name}", Connection = "AzureWebJobsStorage")] Stream excelFileInput, Binder binder, string name, ILogger log, ExecutionContext context)
+        public static async void Run([BlobTrigger("%ContainerName%/Excels/{name}", Connection = "AzureWebJobsStorage")] Stream excelFileInput, Binder binder, string name, ILogger log, ExecutionContext context)
         {
             log.LogInformation($"C# Blob trigger function executed at: {DateTime.Now}");
 
@@ -513,10 +513,10 @@ namespace MRNAFExportExcelToCSV
             var destBlob = container.GetBlockBlobReference($"Excels/Archive/{name}"); // ==> Copy source blob to destination container
 
 
-            destBlob.StartCopyAsync(blockBlob);
+            await destBlob.StartCopyAsync(blockBlob);
             //remove source blob after copy is done.            
 
-            blockBlob.DeleteIfExistsAsync();// ==> Delete blob
+            await blockBlob.DeleteIfExistsAsync();// ==> Delete blob
 
 
 
