@@ -209,7 +209,7 @@ namespace MRNAFExportExcelToCSV
                         headerRow = 2;
                         excelSheets = new List<ExcelSheets>() { new ExcelSheets() { SheetName = "Unit", CsvFileName = $"Ops_Unit_{projectNumber}.csv" }
                         };
-                        additionalColumns.Add(new AdditionalColumns() { ColumnName = "PROJECT NUMBER", ColumnValue = projectNumber });
+                        additionalColumns.Add(new AdditionalColumns() { ColumnName = "SESSION_ID", ColumnValue = projectNumber });
                         folderPath = defaultContainerName + "/OPS/{0}";
                     }
                 }
