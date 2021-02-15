@@ -27,8 +27,8 @@ namespace MRNAFExportExcelToCSV
     public class MSPCredential
     {
         internal static readonly string BaseUrl = "https://themrn.sharepoint.com";
-        private static readonly string userName = "mahavir.rawat@themrn.co.uk";
-        private static readonly string password = "Celebrated161220%";
+        private static readonly string userName = "mspsyncaccount@themrn.co.uk";//"mahavir.rawat@themrn.co.uk";
+        private static readonly string password = "Knowledgeable050221&";//"Celebrated161220%"
         private static SecureString secureString   // property
         {
             get

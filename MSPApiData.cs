@@ -73,6 +73,8 @@ namespace MRNAFExportExcelToCSV
                         url = $"{MSPCredential.BaseUrl}/sites/pwa/_api/ProjectData/[en-us]/{apiName}?format=json&$Filter={deltaColumn} eq null or {deltaColumn} ge datetime'{modifiedDate}'";
                     }
 
+                    log.LogInformation($"API Url is - {url}");
+
                     HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
 
