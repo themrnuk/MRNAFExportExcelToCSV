@@ -617,7 +617,7 @@ namespace MRNAFExportExcelToCSV
                 using (SqlConnection conn = new SqlConnection(str))
                 {
                     conn.Open();
-                    var text = @$"Insert INTO ExcelToCSVErrorLog values(
+                    var text = @$"Insert INTO raw.ExcelToCSVErrorLogs values(
                         '{objErrorLog.ExcelFileName}',
                         '{objErrorLog.ExcelSheetName}',
                         '{objErrorLog.CSVName}',
@@ -645,10 +645,10 @@ namespace MRNAFExportExcelToCSV
             {
                 string strQuery = @"IF (NOT EXISTS (SELECT * 
                                         FROM INFORMATION_SCHEMA.TABLES
-                                        WHERE TABLE_SCHEMA = 'dbo'
-                                        AND TABLE_NAME = 'ExcelToCSVErrorLog'))
+                                        WHERE TABLE_SCHEMA = 'raw'
+                                        AND TABLE_NAME = 'ExcelToCSVErrorLogs'))
                                   BEGIN
-                                        CREATE TABLE[dbo].[ExcelToCSVErrorLog](
+                                        CREATE TABLE[raw].[ExcelToCSVErrorLogs](
                                         [ExcelFileName][varchar](500) NULL,
                                         [ExcelSheetName] [varchar] (500) NULL,
 	                                    [CSVName] [varchar] (500) NULL,
