@@ -21,31 +21,6 @@ using Microsoft.WindowsAzure.Storage;
 
 namespace MRNAFExportExcelToCSV
 {
-
-    class ExcelSheets
-    {
-
-        public string SheetName { get; set; }
-        public string CsvFileName { get; set; }
-        public string TableName { get; set; }
-        public string FolderName { get; set; }
-        public string TableColumns { get; set; }
-    }
-
-    class ExcelToCSVErrorLog
-    {
-        public string ExcelFileName { get; set; }
-        public string ExcelSheetName { get; set; }
-        public string CSVName { get; set; }
-        public string ExcelRowNumber { get; set; }
-        public string ErrorMessage { get; set; }
-
-        public string ExceptionMessage { get; set; }
-        public DateTime DateCreated { get; set; }
-    }
-
-
-
     public static class ExcelToCsv
     {
         [FunctionName("ExcelToCsv")]
@@ -62,19 +37,17 @@ namespace MRNAFExportExcelToCSV
             string defaultContainerName = config.GetConnectionStringOrSetting("ContainerName");
 
             List<ExcelSheets> excelSheets = new List<ExcelSheets>();
-            List<AdditionalColumns> additionalColumns = new List<AdditionalColumns>();
 
-            string folderPath = string.Empty;
 
-            bool onlyFixedColumns = false;
-            int columnCount = -1;
+            //string folderPath = string.Empty;
 
-            int headerRow = 0;
+            string folderName = string.Empty;
             if (name.Contains("/"))
             {
                 return;
             }
             string errMsg = string.Empty;
+            ExcelFile csvFile = null;
             if (!name.EndsWith(".xls") && !name.EndsWith(".xlsx") && !name.EndsWith(".xlsm"))
             {
                 errMsg = $"unable to convert file: {name} into csv.Please upload upload a file with extension (.xls)(.xlsx)(.xlsm)";
@@ -84,44 +57,28 @@ namespace MRNAFExportExcelToCSV
 
                 if (name.ToLower().StartsWith("vendor governance tracker"))
                 {
-                    headerRow = 0;
-                    excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "Govn_Tracker", CsvFileName = "Vendor_Governance.csv" , TableName="Vendor_Governance" ,FolderName="Vendors" }
-                          };
-
-                    folderPath = defaultContainerName + "/Vendors/{0}";
+                    csvFile = new VendorGovernanceTrackerSheet(name, null);
                 }
                 else if (name.ToLower().StartsWith("vendor scorecard tracker"))
                 {
-                    headerRow = 0;
-                    excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "Scorecard_Tracker", CsvFileName = "Vendor_Scorecard.csv"  , TableName="Vendor_Scorecard",FolderName="Vendors"}
-                          };
-
-                    folderPath = defaultContainerName + "/Vendors/{0}";
+                    csvFile = new VendorScorecardTrackerSheet(name, null);
                 }
+                else if (name.ToLower().StartsWith("applicant & onboarding tracker"))
+                {
+                    csvFile = new INNRecruitmentSheet(name, null);
+                }
+
                 else if (name.ToLower().StartsWith("reference_tables"))
                 {
-                    headerRow = 0;
-                    excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "STATIC_DECODES", CsvFileName = "Reference_Codes.csv", TableName="Reference_Codes" ,FolderName="Reference"}
-                          };
-
-                    folderPath = defaultContainerName + "/Reference/{0}";
+                    csvFile = new ReferenceTablesSheet(name, null);
                 }
                 else if (name.ToLower().StartsWith("nurse list"))
                 {
-
-                    headerRow = 0;
-                    excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "Nurse List", CsvFileName = "Nurse_List_.csv", TableName="Nurse_List" ,FolderName="Nursing"}
-                          };
-
-                    folderPath = defaultContainerName + "/Nursing/{0}";
+                    csvFile = new NurseListSheet(name, null);
                 }
                 else if (name.ToLower().StartsWith("vap tracker"))
                 {
-                    headerRow = 0;
-                    excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "VAP Table", CsvFileName = "Nurse_VAP_Table_.csv", TableName="Nurse_VAP_Table",FolderName="Nursing" }
-                          };
-
-                    folderPath = defaultContainerName + "/Nursing/{0}";
+                    csvFile = new VapTrackerSheet(name, null);
                 }
                 else if (name.ToLower().StartsWith("nob sessions"))
                 {
@@ -131,14 +88,8 @@ namespace MRNAFExportExcelToCSV
                         log.LogError($"unable to convert file: {name} into csv");
                         return;
                     }
-                    headerRow = 0;
-                    excelSheets = new List<ExcelSheets>(){
-                         new ExcelSheets() { SheetName = "Sessions", CsvFileName = $"Nurse_Sessions_{namearray[2]}.csv", TableName="Nurse_Sessions",FolderName="Nursing" },
-                                                             new ExcelSheets() { SheetName = "Training", CsvFileName = $"Nurse_Training_{namearray[2]}.csv" , TableName="Nurse_Training",FolderName="Nursing"},
-                                                             new ExcelSheets() { SheetName = "Nurse Docs", CsvFileName = $"Nurse_Docs_{namearray[2]}.csv", TableName="Nurse_Docs" ,FolderName="Nursing"}
-                          };
-                    additionalColumns.Add(new AdditionalColumns() { ColumnName = "REGION", ColumnValue = namearray[2] });
-                    folderPath = defaultContainerName + "/Nursing/{0}";
+                    csvFile = new NoBSessionsSheet(name, new string[] { namearray[2] });
+
                 }
                 else if (name.ToUpper().StartsWith("INN"))
                 {
@@ -150,18 +101,7 @@ namespace MRNAFExportExcelToCSV
                     else
                     {
                         string countryCode = namearray[0].Substring(3);
-                        headerRow = 0;
-                        excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "Referral Tracker", CsvFileName = $"INN_PT_{countryCode}_RT1.csv", TableName="INN_PT_RT1" ,FolderName="INN"},
-                                                             new ExcelSheets() { SheetName = "Patient Nurse List", CsvFileName = $"INN_PT_{countryCode}_PNL.csv", TableName="INN_PT_PNL" ,FolderName="INN"},
-                                                             new ExcelSheets() { SheetName = "Visit Scheduler", CsvFileName = $"INN_PT_{countryCode}_VS1.csv" , TableName="INN_PT_VS1",FolderName="INN"},
-                                                             new ExcelSheets() { SheetName = "Nurse Database", CsvFileName = $"INN_PT_{countryCode}_ND1.csv" , TableName="INN_PT_ND1",FolderName="INN"},
-                                                             new ExcelSheets() { SheetName = "All Projects Information", CsvFileName = $"INN_PT_{countryCode}_API.csv", TableName="INN_PT_API" ,FolderName="INN"},
-                                                             new ExcelSheets() { SheetName = "SNS Referral Tracker", CsvFileName = $"INN_PT_{countryCode}_SRT.csv" , TableName="INN_PT_SRT",FolderName="INN"},
-                                                             new ExcelSheets() { SheetName = "Site Nurse List", CsvFileName = $"INN_PT_{countryCode}_SNL.csv" , TableName="INN_PT_SNL",FolderName="INN"},
-                                                             new ExcelSheets() { SheetName = "SNS Visit Scheduler", CsvFileName = $"INN_PT_{countryCode}_SVS.csv" , TableName="INN_PT_SVS",FolderName="INN"}
-                          };
-                        additionalColumns.Add(new AdditionalColumns() { ColumnName = "COUNTRY CODE", ColumnValue = countryCode });
-                        folderPath = defaultContainerName + "/INN/{0}";
+                        csvFile = new INNFolderSheet(name, new string[] { countryCode });
                     }
                 }
                 else if (name.ToLower().Contains("_project issue log_"))
@@ -174,28 +114,15 @@ namespace MRNAFExportExcelToCSV
                     else
                     {
                         string projectNumber = namearray[0];
-                        headerRow = 1;
-                        excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "Issues and Deviations", CsvFileName = $"IssueLog_Issues_and_Deviations_{projectNumber}.csv"  , TableName="IssueLog_Issues_and_Deviations",FolderName="PIL"},
-                                                             new ExcelSheets() { SheetName = "Clinical Incidents", CsvFileName = $"IssueLog_Clinical_Incidents_{projectNumber}.csv", TableName="IssueLog_Clinical_Incident" ,FolderName="PIL"},
-
-                          };
-                        additionalColumns.Add(new AdditionalColumns() { ColumnName = "PROJECT NUMBER", ColumnValue = namearray[0] });
-                        folderPath = defaultContainerName + "/PIL/{0}";
+                        csvFile = new PILFolderSheet(name, new string[] { projectNumber });
                     }
                 }
                 else if (name.ToLower().StartsWith("old hts opportunities"))
                 {
-                    headerRow = 0;
-                    excelSheets = new List<ExcelSheets>(){new ExcelSheets() { SheetName = "Sheet3", CsvFileName = $"Historic_Projects.csv", TableName="Historic_Projects" ,FolderName="Other"}
-
-                          };
-                    onlyFixedColumns = true;
-                    columnCount = 2;
-                    folderPath = defaultContainerName + "/Other/{0}";
+                    csvFile = new OtherFolderSheet(name, null);
                 }
                 else if (name.ToLower().Contains("ops sheet"))
                 {
-                    headerRow = 2;
                     var namearray = name.Split("#");
                     if (namearray.Length < 2)
                     {
@@ -203,19 +130,20 @@ namespace MRNAFExportExcelToCSV
                     }
                     else
                     {
-                        string projectNumber = string.Empty;
+                        string sessionNumber = string.Empty;
                         for (int digit = 0; digit < namearray[1].Length; digit++)
                         {
                             if (Char.IsDigit(namearray[1][digit]))
-                                projectNumber += namearray[1][digit];
-                            else break;
-                        }
+                            {
+                                sessionNumber += namearray[1][digit];
+                            }
 
-                        headerRow = 2;
-                        excelSheets = new List<ExcelSheets>() { new ExcelSheets() { SheetName = "Unit", CsvFileName = $"Ops_Unit_{projectNumber}.csv" , TableName="Ops_Unit",FolderName="OPS"}
-                        };
-                        additionalColumns.Add(new AdditionalColumns() { ColumnName = "SESSION_ID", ColumnValue = projectNumber });
-                        folderPath = defaultContainerName + "/OPS/{0}";
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        csvFile = new OpsFolderSheet(name, new string[] { sessionNumber });
                     }
                 }
                 else
@@ -227,28 +155,14 @@ namespace MRNAFExportExcelToCSV
                     }
                     else
                     {
-                        headerRow = 2;
-                        additionalColumns.Add(new AdditionalColumns() { ColumnName = "PT_CODE", ColumnValue = namearray[0] });
-                        excelSheets = new List<ExcelSheets>(){
-                             new ExcelSheets() { SheetName = "SIV Tracker", CsvFileName =$"HTS_PT_{namearray[0]}_{namearray[1]}_ST.csv" , TableName="HTS_PT_ST" ,FolderName="PT"},
-                                                             new ExcelSheets() { SheetName = "Patient List", CsvFileName = $"HTS_PT_{namearray[0]}_{namearray[1]}_PL.csv" , TableName="HTS_PT_PL",FolderName="PT" },
-                                                             new ExcelSheets() { SheetName = "Nurse List", CsvFileName = $"HTS_PT_{namearray[0]}_{namearray[1]}_NL.csv" , TableName="HTS_PT_NL",FolderName="PT"},
-                                                             new ExcelSheets() { SheetName = "Visit Tracker", CsvFileName = $"HTS_PT_{namearray[0]}_{namearray[1]}_VT.csv", TableName="HTS_PT_VT" ,FolderName="PT"},
-                                                             new ExcelSheets() { SheetName = "MRN Internal DCF Tracker", CsvFileName = $"HTS_PT_{namearray[0]}_{namearray[1]}_DCF.csv", TableName="HTS_PT_DCF",FolderName="PT"}
-                         };
-                        folderPath = defaultContainerName + "/PT/{0}";
+                        csvFile = new PTSheet(name, namearray);
                     }
                 }
 
             }
 
-            if (string.IsNullOrWhiteSpace(errMsg))
+            if (csvFile != null && string.IsNullOrWhiteSpace(errMsg))
             {
-                additionalColumns.Add(new AdditionalColumns() { ColumnName = "SOURCE_SPREAD_SHEET", ColumnValue = name });
-                additionalColumns.Add(new AdditionalColumns() { ColumnName = "TIMEDATE_SNAPSHOT", ColumnValue = DateTime.Now.ToString("dd'/'MM'/'yyyy HH:mm:ss") });
-                additionalColumns.Add(new AdditionalColumns() { ColumnName = "SOURCE_SHEET", ColumnValue = string.Empty });
-                additionalColumns.Add(new AdditionalColumns() { ColumnName = "CELL_RANGE", ColumnValue = string.Empty });
-
                 log.LogInformation($"Do your processing on the excelFileInput file here.");
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                 using (excelFileInput)
@@ -285,211 +199,227 @@ namespace MRNAFExportExcelToCSV
                         ExcelSheets currentSheet = new ExcelSheets();
                         try
                         {
-
-                            if (!excelSheets.Any(e => e.SheetName == reader.Name.Trim()))
+                            currentSheet = csvFile.GetCsvSheet(reader.Name.Trim());
+                            if (currentSheet != null)
                             {
-                                continue;
-                            }
 
-                            currentSheet = excelSheets.FirstOrDefault(e => e.SheetName == reader.Name.Trim());
+                                string csvFilePath = $"{defaultContainerName}/{currentSheet.FolderName}/{currentSheet.CsvFileName}";
+                                var csvContent = string.Empty;
 
-                            string csvFilePath = string.Format(folderPath, currentSheet.CsvFileName);
-                            var csvContent = string.Empty;
+                                List<AdditionalColumns> additionalColumns = csvFile.AdditionalColumns;
 
-
-
-                            int rowIndex = 0;
-                            List<int> writablecolumns = new List<int>();
-                            try
-                            {
-                                string additionaHeaders = string.Empty;
-                                string additionaHeadersValues = string.Empty;
-                                int patient_columnindex = -1;
-                                string patient_columndefaultvalue = "99999999";
-                                while (reader.Read())
+                                int rowIndex = 0;
+                                List<int> writablecolumns = new List<int>();
+                                try
                                 {
-                                    try
+                                    string additionaHeaders = string.Empty;
+                                    string additionaHeadersValues = string.Empty;
+                                    int patient_columnindex = -1;
+                                    string patient_columndefaultvalue = "99999999";
+                                    while (reader.Read())
                                     {
-                                        List<string> arr = new List<string>();
-                                        int lastNotEmptyCellIndex = 0;
-                                        string headerColumnRange = string.Empty;
-                                        if (rowIndex == headerRow)
+                                        try
                                         {
-                                            AdditionalColumns sourceSheetColumn = additionalColumns.LastOrDefault(c => c.ColumnName == "SOURCE_SHEET");
-                                            sourceSheetColumn.ColumnValue = reader.Name;
-                                            AdditionalColumns cellRangeColumn = additionalColumns.LastOrDefault(c => c.ColumnName == "CELL_RANGE");
-
-                                            int fieldCount = onlyFixedColumns ? columnCount : reader.FieldCount;
-                                            fieldCount = Math.Min(fieldCount, 500);
-                                            for (int headerCellIndex = 0; headerCellIndex < fieldCount; headerCellIndex++)
+                                            List<string> arr = new List<string>();
+                                            int lastNotEmptyCellIndex = 0;
+                                            string headerColumnRange = string.Empty;
+                                            if (rowIndex == currentSheet.HeaderRow)
                                             {
-                                                string cellText = string.Empty;
-                                                try
+                                                AdditionalColumns sourceSheetColumn = additionalColumns.LastOrDefault(c => c.ColumnName == "SOURCE_SHEET");
+                                                sourceSheetColumn.ColumnValue = reader.Name;
+                                                AdditionalColumns cellRangeColumn = additionalColumns.LastOrDefault(c => c.ColumnName == "CELL_RANGE");
+
+                                                int fieldCount = currentSheet.FixedColumn ? currentSheet.ColumnCount : reader.FieldCount;
+                                                fieldCount = Math.Min(fieldCount, 500);
+                                                for (int headerCellIndex = 0; headerCellIndex < fieldCount; headerCellIndex++)
                                                 {
-                                                    cellText = GetFormattedValue(reader, headerCellIndex, CultureInfo.InvariantCulture, log);
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    log.LogError(ex.Message);
+                                                    string cellText = string.Empty;
+                                                    try
+                                                    {
+                                                        cellText = GetFormattedValue(reader, headerCellIndex, CultureInfo.InvariantCulture, log);
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        log.LogError(ex.Message);
+                                                    }
+
+                                                    if (currentSheet.SheetName == "Unit" && headerCellIndex == 0)
+                                                    {
+                                                        cellText = "TYPE";
+                                                    }
+                                                    cellText = cellText.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ").Trim();
+                                                    cellText = Regex.Replace(cellText, @"\s+", " ");
+
+                                                    if (!string.IsNullOrWhiteSpace(cellText))
+                                                    {
+                                                        writablecolumns.Add(headerCellIndex);
+                                                        if (cellText.Contains("|") || cellText.Contains("\"") || cellText.Contains("\f") || cellText.Contains("\b") || cellText.Contains("\t"))
+                                                        {
+                                                            cellText = string.Format("\"{0}\"", cellText.Replace("\"", "\"\"").ToUpper().Trim());
+                                                        }
+                                                        else
+                                                        {
+                                                            cellText = cellText.ToUpper().Trim();
+                                                        }
+                                                        if (arr.Count == 0)
+                                                        {
+                                                            cellRangeColumn.ColumnValue = $"{GetExcelColumnName(headerCellIndex + 1)}{currentSheet.HeaderRow + 1}";
+                                                        }
+                                                        lastNotEmptyCellIndex = headerCellIndex;
+                                                        arr.Add(cellText);
+                                                    }
+
                                                 }
 
-                                                if (currentSheet.SheetName == "Unit" && headerCellIndex == 0)
-                                                {
-                                                    cellText = "TYPE";
-                                                }
-                                                cellText = cellText.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ").Trim();
-                                                cellText = Regex.Replace(cellText, @"\s+", " ");
 
-                                                if (!string.IsNullOrWhiteSpace(cellText))
+                                                if (currentSheet.CsvFileName.StartsWith("INN_PT_"))
                                                 {
-                                                    writablecolumns.Add(headerCellIndex);
-                                                    if (cellText.Contains("|") || cellText.Contains("\"") || cellText.Contains("\f") || cellText.Contains("\b") || cellText.Contains("\t"))
+                                                    if (additionalColumns.Any(c => c.ColumnName == "PATIENT ID"))
                                                     {
-                                                        cellText = string.Format("\"{0}\"", cellText.Replace("\"", "\"\"").ToUpper().Trim());
+                                                        var patientColumn = additionalColumns.FirstOrDefault(c => c.ColumnName == "PATIENT ID");
+                                                        additionalColumns.Remove(patientColumn);
                                                     }
-                                                    else
+
+                                                    if (currentSheet.SheetName == "Referral Tracker" || currentSheet.SheetName == "Patient Nurse List" || currentSheet.SheetName == "Visit Scheduler")
                                                     {
-                                                        cellText = cellText.ToUpper().Trim();
+                                                        patient_columnindex = arr.FindIndex(a => a == "PATIENT ID");
+                                                        if (patient_columnindex == -1 && !additionalColumns.Any(c => c.ColumnName == "PATIENT ID"))
+                                                        {
+                                                            additionalColumns.Add(new AdditionalColumns() { ColumnName = "PATIENT ID", ColumnValue = patient_columndefaultvalue });
+                                                        }
                                                     }
-                                                    if (arr.Count == 0)
+                                                }
+
+
+                                                cellRangeColumn.ColumnValue = $"{cellRangeColumn.ColumnValue}:{GetExcelColumnName(lastNotEmptyCellIndex + 1)}{currentSheet.HeaderRow + 1}";
+                                                additionaHeaders = string.Join("|", additionalColumns.Select(c => c.ColumnName));
+                                                additionaHeadersValues = string.Join("|", additionalColumns.Select(c => c.ColumnValue));
+                                            }
+                                            else if (rowIndex >= currentSheet.HeaderRow + 1)
+                                            {
+
+                                                for (int writablecolumnIndex = 0; writablecolumnIndex < writablecolumns.Count; writablecolumnIndex++)
+                                                {
+                                                    int dataCellIndex = writablecolumns[writablecolumnIndex];
+
+                                                    string cellText = string.Empty;
+                                                    try
                                                     {
-                                                        cellRangeColumn.ColumnValue = $"{GetExcelColumnName(headerCellIndex + 1)}{headerRow + 1}";
+
+                                                        cellText = GetFormattedValue(reader, dataCellIndex, CultureInfo.InvariantCulture, log);
                                                     }
-                                                    lastNotEmptyCellIndex = headerCellIndex;
+                                                    catch (Exception ex)
+                                                    {
+                                                        log.LogError(ex.Message);
+
+                                                    }
+
+                                                    if (cellText.Contains("|") || cellText.Contains("\"") || cellText.Contains("\n") || cellText.Contains("\r") || cellText.Contains("\f") || cellText.Contains("\b") || cellText.Contains("\t"))
+                                                    {
+                                                        cellText = string.Format("\"{0}\"", cellText.Replace("\"", "\"\""));
+                                                    }
+                                                    cellText = cellText.Trim();
+                                                    if (currentSheet.SheetName == "Unit")
+                                                    {
+                                                        if (dataCellIndex == 0 && !(cellText.ToUpper() == "NURSE TRAINING" || cellText.ToUpper() == "VISITS"))
+                                                        {
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (string.IsNullOrWhiteSpace(cellText) && writablecolumnIndex == patient_columnindex && patient_columnindex > -1)
+                                                    {
+                                                        cellText = patient_columndefaultvalue;
+                                                    }
                                                     arr.Add(cellText);
                                                 }
 
                                             }
-
-
-                                            if (currentSheet.CsvFileName.StartsWith("INN_PT_"))
+                                            else
                                             {
-                                                if (additionalColumns.Any(c => c.ColumnName == "PATIENT ID"))
-                                                {
-                                                    var patientColumn = additionalColumns.FirstOrDefault(c => c.ColumnName == "PATIENT ID");
-                                                    additionalColumns.Remove(patientColumn);
-                                                }
 
-                                                if (currentSheet.SheetName == "Referral Tracker" || currentSheet.SheetName == "Patient Nurse List" || currentSheet.SheetName == "Visit Scheduler")
-                                                {
-                                                    patient_columnindex = arr.FindIndex(a => a == "PATIENT ID");
-                                                    if (patient_columnindex == -1 && !additionalColumns.Any(c => c.ColumnName == "PATIENT ID"))
-                                                    {
-                                                        additionalColumns.Add(new AdditionalColumns() { ColumnName = "PATIENT ID", ColumnValue = patient_columndefaultvalue });
-                                                    }
-                                                }
                                             }
-
-
-                                            cellRangeColumn.ColumnValue = $"{cellRangeColumn.ColumnValue}:{GetExcelColumnName(lastNotEmptyCellIndex + 1)}{headerRow + 1}";
-                                            additionaHeaders = string.Join("|", additionalColumns.Select(c => c.ColumnName));
-                                            additionaHeadersValues = string.Join("|", additionalColumns.Select(c => c.ColumnValue));
-                                        }
-                                        else if (rowIndex >= headerRow + 1)
-                                        {
-
-                                            for (int writablecolumnIndex = 0; writablecolumnIndex < writablecolumns.Count; writablecolumnIndex++)
+                                            //if (arr.Any(a => a.Replace( "\\\"","").Replace("\\n", "").Replace("\\r", "").Replace("\\f", "").Replace("\\b", "").Replace( "\\t", "").Trim() != ""))
+                                            if (arr.Any(a => a.Replace("\n", "").Replace("\r", "").Replace("\f", "").Replace("\b", "").Replace("\t", "").Trim() != ""))
                                             {
-                                                int dataCellIndex = writablecolumns[writablecolumnIndex];
-
-                                                string cellText = string.Empty;
-                                                try
+                                                if (additionalColumns.Count > 0)
                                                 {
-
-                                                    cellText = GetFormattedValue(reader, dataCellIndex, CultureInfo.InvariantCulture, log);
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    log.LogError(ex.Message);
-
-                                                }
-
-                                                if (cellText.Contains("|") || cellText.Contains("\"") || cellText.Contains("\n") || cellText.Contains("\r") || cellText.Contains("\f") || cellText.Contains("\b") || cellText.Contains("\t"))
-                                                {
-                                                    cellText = string.Format("\"{0}\"", cellText.Replace("\"", "\"\""));
-                                                }
-                                                cellText = cellText.Trim();
-                                                if (currentSheet.SheetName == "Unit")
-                                                {
-                                                    if (dataCellIndex == 0 && !(cellText.ToUpper() == "NURSE TRAINING" || cellText.ToUpper() == "VISITS"))
+                                                    if (rowIndex == currentSheet.HeaderRow)
                                                     {
-                                                        break;
+
+                                                        csvContent += additionaHeaders + "|" + string.Join("|", arr) + "\n";
+                                                        currentSheet.TableColumns = csvContent;
+                                                        CreateTableSchema(currentSheet, name, currentSheet.CsvFileName, log);
                                                     }
-                                                }
-                                                if (string.IsNullOrWhiteSpace(cellText) && writablecolumnIndex == patient_columnindex && patient_columnindex > -1)
-                                                {
-                                                    cellText = patient_columndefaultvalue;
-                                                }
-                                                arr.Add(cellText);
-                                            }
-
-                                        }
-                                        else
-                                        {
-
-                                        }
-                                        //if (arr.Any(a => a.Replace( "\\\"","").Replace("\\n", "").Replace("\\r", "").Replace("\\f", "").Replace("\\b", "").Replace( "\\t", "").Trim() != ""))
-                                        if (arr.Any(a => a.Replace("\n", "").Replace("\r", "").Replace("\f", "").Replace("\b", "").Replace("\t", "").Trim() != ""))
-                                        {
-                                            if (additionalColumns.Count > 0)
-                                            {
-                                                if (rowIndex == headerRow)
-                                                {
-
-                                                    csvContent += additionaHeaders + "|" + string.Join("|", arr) + "\n";
-                                                    currentSheet.TableColumns = csvContent;
-                                                    CreateTableSchema(currentSheet, name, currentSheet.CsvFileName, log);
+                                                    else
+                                                    {
+                                                        csvContent += additionaHeadersValues + "|" + string.Join("|", arr) + "\n";
+                                                    }
                                                 }
                                                 else
                                                 {
-                                                    csvContent += additionaHeadersValues + "|" + string.Join("|", arr) + "\n";
+                                                    csvContent += string.Join("|", arr) + "\n";
                                                 }
-                                            }
-                                            else
-                                            {
-                                                csvContent += string.Join("|", arr) + "\n";
-                                            }
 
+                                            }
                                         }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        log.LogError(ex.Message);
-                                        ExcelToCSVErrorLog obj = new ExcelToCSVErrorLog();
-                                        obj.ExcelFileName = name;
-                                        obj.ExcelSheetName = reader.Name;
-                                        obj.CSVName = currentSheet.CsvFileName;
-                                        obj.ExcelRowNumber = rowIndex.ToString();
-                                        obj.ErrorMessage = "An errror occured during processing excel rows.";
-                                        obj.ExceptionMessage = ex.Message;
-                                        obj.DateCreated = DateTime.Now;
-                                        SaveErrorLogsToTable(obj, log);
-                                    }
-                                    rowIndex++;
+                                        catch (Exception ex)
+                                        {
+                                            log.LogError(ex.Message);
+                                            ExcelToCSVErrorLog obj = new ExcelToCSVErrorLog();
+                                            obj.ExcelFileName = name;
+                                            obj.ExcelSheetName = reader.Name;
+                                            obj.CSVName = currentSheet.CsvFileName;
+                                            obj.ExcelRowNumber = rowIndex.ToString();
+                                            obj.ErrorMessage = "An errror occured during processing excel rows.";
+                                            obj.ExceptionMessage = ex.Message;
+                                            obj.DateCreated = DateTime.Now;
+                                            SaveErrorLogsToTable(obj, log);
+                                        }
+                                        rowIndex++;
 
+                                    }
                                 }
-                            }
-                            catch (Exception ex)
-                            {
-                                log.LogError(ex.Message);
-                                ExcelToCSVErrorLog obj = new ExcelToCSVErrorLog();
-                                obj.ExcelFileName = name;
-                                obj.ExcelSheetName = reader.Name;
-                                obj.CSVName = currentSheet.CsvFileName;
-                                obj.ExcelRowNumber = rowIndex.ToString();
-                                obj.ErrorMessage = "An errror occured before processing excel rows.";
-                                obj.ExceptionMessage = ex.Message;
-                                obj.DateCreated = DateTime.Now;
-                                SaveErrorLogsToTable(obj, log);
+                                catch (Exception ex)
+                                {
+                                    log.LogError(ex.Message);
+                                    ExcelToCSVErrorLog obj = new ExcelToCSVErrorLog();
+                                    obj.ExcelFileName = name;
+                                    obj.ExcelSheetName = reader.Name;
+                                    obj.CSVName = currentSheet.CsvFileName;
+                                    obj.ExcelRowNumber = string.Empty;
+                                    obj.ErrorMessage = "An errror occured before processing excel rows.";
+                                    obj.ExceptionMessage = ex.Message;
+                                    obj.DateCreated = DateTime.Now;
+                                    SaveErrorLogsToTable(obj, log);
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(csvContent))
+                                {
+                                    BlobAttribute blob = new BlobAttribute(csvFilePath, FileAccess.Write);
+                                    using (Stream destination = binder.Bind<Stream>(blob))
+                                    {
+                                        StreamWriter csv = new StreamWriter(destination, Encoding.UTF8);
+                                        csv.Write(csvContent);
+                                        csv.Close();
+                                    }
+                                }
+                                else
+                                {
+                                    log.LogError("No header or data are found in csv file");
+                                    ExcelToCSVErrorLog obj = new ExcelToCSVErrorLog();
+                                    obj.ExcelFileName = name;
+                                    obj.ExcelSheetName = reader.Name;
+                                    obj.CSVName = currentSheet.CsvFileName;
+                                    obj.ExcelRowNumber = string.Empty;
+                                    obj.ErrorMessage = "No header or data are found in csv file";
+                                    obj.ExceptionMessage = "No header or data are found in csv file";
+                                    obj.DateCreated = DateTime.Now;
+                                    SaveErrorLogsToTable(obj, log);
+                                }
+
                             }
 
-                            BlobAttribute blob = new BlobAttribute(csvFilePath, FileAccess.Write);
-                            using (Stream destination = binder.Bind<Stream>(blob))
-                            {
-                                StreamWriter csv = new StreamWriter(destination, Encoding.UTF8);
-                                csv.Write(csvContent);
-                                csv.Close();
-                            }
+
                         }
                         catch (Exception ex)
                         {
@@ -522,7 +452,6 @@ namespace MRNAFExportExcelToCSV
                 obj.DateCreated = DateTime.Now;
                 SaveErrorLogsToTable(obj, log);
             }
-
             try
             {
                 var archiveFolder = config.GetConnectionStringOrSetting("ArchiveFolder");

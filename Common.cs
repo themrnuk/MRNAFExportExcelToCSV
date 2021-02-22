@@ -50,9 +50,5 @@ namespace MRNAFExportExcelToCSV
 
     }
 
-    class AdditionalColumns
-    {
-        public string ColumnName { get; set; }
-        public string ColumnValue { get; set; }
-    }
+    
 }
