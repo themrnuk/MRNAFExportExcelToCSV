@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="5.0.0-beta.1" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.24.0" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.11" />
+    <PackageReference Include="NPOI" Version="2.5.2" />
     <PackageReference Include="RestSharp" Version="106.11.7" />
     <PackageReference Include="SharePointPnPCoreOnline" Version="3.22.2006.2" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
