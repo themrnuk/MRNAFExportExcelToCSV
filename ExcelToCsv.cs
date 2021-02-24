@@ -747,17 +747,10 @@ namespace MRNAFExportExcelToCSV
                                                                 {
 
                                                                     var currentcell = currentExcelSheet.GetRow(rowIndex).GetCell(headerCellIndex);
+                                                                    cellText = GetFormattedValue(dataFormatter, formulaEvaluator, currentcell);
                                                                     if (currentcell.CellType == CellType.Numeric && currentcell.DateCellValue != DateTime.MinValue)
                                                                     {
                                                                         cellText = currentcell.DateCellValue.ToString("dd'/'MM'/'yyyy");
-                                                                    }
-                                                                    else if (currentcell.CellType == CellType.Formula && currentcell.CachedFormulaResultType == CellType.Numeric && currentcell.DateCellValue != DateTime.MinValue)
-                                                                    {
-                                                                        cellText = currentcell.DateCellValue.ToString("dd'/'MM'/'yyyy");
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        cellText = currentExcelSheet.GetRow(rowIndex).GetCell(currentcell.ColumnIndex, MissingCellPolicy.RETURN_NULL_AND_BLANK).ToString();
                                                                     }
 
                                                                 }
