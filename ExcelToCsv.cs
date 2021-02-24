@@ -819,14 +819,21 @@ namespace MRNAFExportExcelToCSV
                                                                 {
                                                                     var currentcell = currentExcelSheet.GetRow(rowIndex).GetCell(dataCellIndex);
 
-                                                                    cellText = GetFormattedValue(dataFormatter, formulaEvaluator, currentcell);
+                                                                    cellText = GetFormattedValue(dataFormatter, formulaEvaluator, currentcell).Trim();
                                                                      
                                                                     if (currentcell.CellType == CellType.Numeric && currentcell.DateCellValue != DateTime.MinValue)
                                                                     {
 
                                                                         cellText = currentcell.DateCellValue.ToString("dd'/'MM'/'yyyy");
                                                                     }
-
+                                                                    else if (currentcell.CellType == CellType.Formula && currentcell.DateCellValue != DateTime.MinValue)
+                                                                    {
+                                                                        if ( cellText.Contains("/") || cellText.Contains("-") && cellText.Length <= 11)
+                                                                        {
+                                                                            cellText = currentcell.DateCellValue.ToString("dd'/'MM'/'yyyy");
+                                                                        }
+                                                                         
+                                                                    }
 
 
 
@@ -972,6 +979,7 @@ namespace MRNAFExportExcelToCSV
                 {
                     // Get evaluated and formatted cell value
                     returnValue = dataFormatter.FormatCellValue(cell, formulaEvaluator);
+                    
                 }
                 catch
                 {
