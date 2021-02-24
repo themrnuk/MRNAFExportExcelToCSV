@@ -225,6 +225,7 @@ namespace MRNAFExportExcelToCSV.JiraUtility
         public Reporter reporter { get; set; }
         public Priority priority { get; set; }
         public double customfield_10024 { get; set; }
+        public double customfield_10016 { get; set; }
         public List<object> labels { get; set; }
         public Timetracking timetracking { get; set; }
         public Comment comment { get; set; }

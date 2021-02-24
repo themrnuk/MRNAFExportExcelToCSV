@@ -17,6 +17,7 @@ namespace MRNAFExportExcelToCSV.JiraUtility
         public string Project { get; set; }
         public string Reporter { get; set; }
         public string Priority { get; set; }
+        public double StoryPointEstimate { get; set; }
         public double StoryPoints { get; set; }
         public string RemainingEstimate { get; set; }
         public string TimeSpent { get; set; }

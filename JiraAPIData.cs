@@ -118,7 +118,7 @@ namespace MRNAFExportExcelToCSV
 
                     foreach (int page in pages)
                     {
-                        url = $"{JiraAPICredentials.APIBaseUrl}/search?fields=comment,worklog,summary,description,customfield_10020,customfield_10024,assignee,creator,reporter,priority,project,timetracking,labels,components,created,updated,status&expand=changelog&maxResults=100&startAt=" + page;
+                        url = $"{JiraAPICredentials.APIBaseUrl}/search?fields=comment,worklog,summary,description,customfield_10020,customfield_10024,customfield_10016,assignee,creator,reporter,priority,project,timetracking,labels,components,created,updated,status&expand=changelog&maxResults=100&startAt=" + page;
                         HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
                         string jsonData = await response.Content.ReadAsStringAsync();
@@ -150,6 +150,7 @@ namespace MRNAFExportExcelToCSV
                                                            TimeSpentSeconds = issue.fields.timetracking != null ? issue.fields.timetracking.timeSpentSeconds : 0,
                                                            Reporter = issue.fields.reporter != null ? issue.fields.reporter.displayName : "",
                                                            Status = issue.fields.status != null ? issue.fields.status.name : "",
+                                                           StoryPointEstimate= issue.fields.customfield_10016,
                                                            StoryPoints = issue.fields.customfield_10024,
                                                            Summary = issue.fields.summary,
                                                            Updated = issue.fields.updated,
