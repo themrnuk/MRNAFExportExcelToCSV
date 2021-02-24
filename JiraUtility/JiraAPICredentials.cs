@@ -11,5 +11,8 @@ namespace MRNAFExportExcelToCSV.JiraUtility
 
         public static string AccessToken { get; } = "L3SIKGO84gMq9Svj9wJL153A";
 
+        public static string ZephyrAPIBaseUrl = "https://api.adaptavist.io/tm4j/v2";
+
+        public static string ZephyrAccessToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyNTkyMTk5NC1iY2UzLTMyNTgtYTIxYS01YTg0NDI3NmUwYjAiLCJjb250ZXh0Ijp7ImJhc2VVcmwiOiJodHRwczpcL1wvdGhlbXJuLmF0bGFzc2lhbi5uZXQiLCJ1c2VyIjp7ImFjY291bnRJZCI6IjVmMDMxMzE2YjU0NWUyMDAxNTRkNWNkYyJ9fSwiaXNzIjoiY29tLmthbm9haC50ZXN0LW1hbmFnZXIiLCJleHAiOjE2NDU0NzMzMDAsImlhdCI6MTYxMzkzNzMwMH0.4yN3CFhaNC059WMMft86knWygSmnkSKcRrQ6BjTrzks";
     }
 }

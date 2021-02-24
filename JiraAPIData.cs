@@ -71,13 +71,13 @@ namespace MRNAFExportExcelToCSV
                     List<JiraProjectResponse> jiraAPIProjectResponse = JsonConvert.DeserializeObject<List<JiraProjectResponse>>(projectJsonData, projectsettings);
 
                     List<JiraProjects> allprojects = (from JiraProjectResponse project in jiraAPIProjectResponse
-                                                 select new JiraProjects
-                                                 {
-                                                     ProjectID = project.id,
-                                                     ProjectName = project.name,
-                                                     ProjectKey = project.key,
-                                                     IsPrivate = project.isPrivate
-                                                 }).ToList();
+                                                      select new JiraProjects
+                                                      {
+                                                          ProjectID = project.id,
+                                                          ProjectName = project.name,
+                                                          ProjectKey = project.key,
+                                                          IsPrivate = project.isPrivate
+                                                      }).ToList();
                     projectJson = JsonConvert.SerializeObject(allprojects);
                     await SaveJSONFileAsync(context, jiraProjectFileName, projectJson);
                     //========================================================================================================
@@ -115,13 +115,7 @@ namespace MRNAFExportExcelToCSV
                     List<JiraIssueWorkLogs> allissueworklogs = new List<JiraIssueWorkLogs>();
                     List<JiraIssueHistories> allissuehistories = new List<JiraIssueHistories>();
 
-                    string issuesJson = "[]";
-                    string sprintJson = "[]";
-                    string labelJson = "[]";
-                    string componentJson = "[]";
-                    string commmentJson = "[]";
-                    string worklogJson = "[]";
-                    string historyJson = "[]";
+
                     foreach (int page in pages)
                     {
                         url = $"{JiraAPICredentials.APIBaseUrl}/search?fields=comment,worklog,summary,description,customfield_10020,customfield_10024,assignee,creator,reporter,priority,project,timetracking,labels,components,created,updated,status&expand=changelog&maxResults=100&startAt=" + page;
@@ -161,7 +155,7 @@ namespace MRNAFExportExcelToCSV
                                                            Updated = issue.fields.updated,
                                                        }).ToList();
                             allissues.AddRange(issues);
-                            issuesJson = JsonConvert.SerializeObject(allissues);
+
                             //==============================================================================================================
 
                             //=======================================Getting Sprints========================================================
@@ -196,7 +190,7 @@ namespace MRNAFExportExcelToCSV
                                 }
 
                             }
-                            sprintJson = JsonConvert.SerializeObject(allsprints);
+
                             //================================================================================================================
 
                             //=========================================Getting Issue Labels===================================================
@@ -222,7 +216,7 @@ namespace MRNAFExportExcelToCSV
                                     }
                                 }
                             }
-                            labelJson = JsonConvert.SerializeObject(allissuelabels);
+
                             //================================================================================================================
 
                             //==========================================Getting Issue Components==============================================
@@ -252,7 +246,7 @@ namespace MRNAFExportExcelToCSV
                                     }
                                 }
                             }
-                            componentJson = JsonConvert.SerializeObject(allissuecomponents);
+
                             //================================================================================================================
 
                             //=====================================Getting Issue Comments==============================================================
@@ -284,9 +278,6 @@ namespace MRNAFExportExcelToCSV
                                     }
                                 }
                             }
-                            commmentJson = JsonConvert.SerializeObject(allissuecomments);
-
-
                             //=================================================================================================================
 
                             //=====================================Grtting Issue Histories=============================================================
@@ -330,7 +321,7 @@ namespace MRNAFExportExcelToCSV
                                     }
                                 }
                             }
-                            historyJson = JsonConvert.SerializeObject(allissuehistories);
+
                             //=================================================================================================================
 
                             //=====================================Getting Issue Worklogs==============================================================
@@ -366,10 +357,36 @@ namespace MRNAFExportExcelToCSV
                                     }
                                 }
                             }
-                            worklogJson = JsonConvert.SerializeObject(allissueworklogs);
+
                             //=================================================================================================================
                         }
                     }
+
+                    //=====================================================Getting Jira Test Cases Data=======================================================
+                    await GetJiraTestCasesAsync(context, client);
+                    await GetJiraTestCasesProjectsAsync(context, client);
+                    await GetJiraTestCasesStatusesAsync(context, client);
+                    await GetJiraTestCasesPrioritiesAsync(context, client);
+                    await GetJiraTestCasesExecusionsAsync(context, client);
+                    await GetJiraTestCasesCyclesAsync(context, client);
+                    await GetJiraTestCasesEnvironmentAsync(context, client);
+                    //===================================================================================================================================
+
+                    string issuesJson = "[]";
+                    string sprintJson = "[]";
+                    string labelJson = "[]";
+                    string componentJson = "[]";
+                    string commmentJson = "[]";
+                    string worklogJson = "[]";
+                    string historyJson = "[]";
+
+                    issuesJson = JsonConvert.SerializeObject(allissues);
+                    sprintJson = JsonConvert.SerializeObject(allsprints);
+                    labelJson = JsonConvert.SerializeObject(allissuelabels);
+                    componentJson = JsonConvert.SerializeObject(allissuecomponents);
+                    commmentJson = JsonConvert.SerializeObject(allissuecomments);
+                    historyJson = JsonConvert.SerializeObject(allissuehistories);
+                    worklogJson = JsonConvert.SerializeObject(allissueworklogs);
 
                     string jiraIssueFileName = string.Format("{0}.json", "JIRA_Issues");
                     string jiraSprintFileName = string.Format("{0}.json", "JIRA_Sprints");
@@ -378,6 +395,8 @@ namespace MRNAFExportExcelToCSV
                     string jiraIssueCommentFileName = string.Format("{0}.json", "JIRA_Issue_Comments");
                     string jiraIssueHistoryFileName = string.Format("{0}.json", "JIRA_Issue_History");
                     string jiraIssueWorklogFileName = string.Format("{0}.json", "JIRA_Issue_Worklogs");
+                    
+
 
                     await SaveJSONFileAsync(context, jiraIssueFileName, issuesJson);
                     await SaveJSONFileAsync(context, jiraSprintFileName, sprintJson);
@@ -394,7 +413,488 @@ namespace MRNAFExportExcelToCSV
                 }
             }
         }
+        public static async Task GetJiraTestCasesAsync(ExecutionContext context, HttpClient client)
+        {
+            List<JiraTestCase> allJiraTestCases = new List<JiraTestCase>();
+            string url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/testcases?maxResults=1";
 
+           
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JiraAPICredentials.ZephyrAccessToken);
+            HttpResponseMessage paggingresponse = await client.GetAsync(url).ConfigureAwait(false);
+            paggingresponse.EnsureSuccessStatusCode();
+            string testcasepaggingJsonData = await paggingresponse.Content.ReadAsStringAsync();
+
+            var paggingsettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+            JiraTestcaseResponse paggingobj = JsonConvert.DeserializeObject<JiraTestcaseResponse>(testcasepaggingJsonData, paggingsettings);
+
+            List<int> pages = new List<int>();
+            if (paggingobj != null && paggingobj.total >= 100)
+            {
+                int lastPage = paggingobj.total / 100;
+                for (int i = 0; i <= lastPage; i++)
+                {
+                    pages.Add(i * 100);
+                }
+            }
+            else
+            {
+                pages.Add(0);
+            }
+
+            foreach (int page in pages)
+            {
+                url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/testcases?maxResults=100&startAt=" + page;
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                string jsonData = await response.Content.ReadAsStringAsync();
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+                JiraTestcaseResponse apiResponse = JsonConvert.DeserializeObject<JiraTestcaseResponse>(jsonData, settings);
+
+                if (apiResponse != null)
+                {
+                    List<JiraTestCase> objtestcase = (from Value testcase in apiResponse.values
+                                                      select new JiraTestCase
+                                                      {
+                                                          ComponentID = testcase.component != null ? testcase.component.id : 0,
+                                                          CreatedOn = testcase.createdOn,
+                                                          EstimatedTime = testcase.estimatedTime,
+                                                          FolderID = testcase.folder != null ? testcase.folder.id : 0,
+                                                          Name = testcase.name,
+                                                          Objective = testcase.objective,
+                                                          OwnerAccountID = testcase.owner != null ? testcase.owner.accountId : "",
+                                                          Precondition = testcase.precondition,
+                                                          PriorityID = testcase.priority != null ? testcase.priority.id : 0,
+                                                          StatusID = testcase.status != null ? testcase.status.id : 0,
+                                                          TestCaseID = testcase.id,
+                                                          TestCaseKey = testcase.key,
+                                                          ProjectID = testcase.project != null ? testcase.project.id : 0,
+                                                      }).ToList();
+                    allJiraTestCases.AddRange(objtestcase);
+                }
+            }
+            string json = "[]";
+            json = JsonConvert.SerializeObject(allJiraTestCases);
+            string jiraTestCasesFileName = string.Format("{0}.json", "JIRA_Test_Cases");
+            await SaveJSONFileAsync(context, jiraTestCasesFileName, json);
+        }
+        public static async Task GetJiraTestCasesProjectsAsync(ExecutionContext context, HttpClient client)
+        {
+            List<JiraTestCaseProject> allJiraTestCasesProject = new List<JiraTestCaseProject>();
+            string url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/projects?maxResults=1";
+
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JiraAPICredentials.ZephyrAccessToken);
+            HttpResponseMessage testcaseprojectpaggingresponse = await client.GetAsync(url).ConfigureAwait(false);
+            testcaseprojectpaggingresponse.EnsureSuccessStatusCode();
+            string testcasestatuspaggingJsonData = await testcaseprojectpaggingresponse.Content.ReadAsStringAsync();
+            var paggingsettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+            JiraTestcaseResponse paggingobj = JsonConvert.DeserializeObject<JiraTestcaseResponse>(testcasestatuspaggingJsonData, paggingsettings);
+
+            List<int> pages = new List<int>();
+            if (paggingobj != null && paggingobj.total >= 100)
+            {
+                int lastPage = paggingobj.total / 100;
+                for (int i = 0; i <= lastPage; i++)
+                {
+                    pages.Add(i * 100);
+                }
+            }
+            else
+            {
+                pages.Add(0);
+            }
+
+            foreach (int page in pages)
+            {
+                url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/projects?maxResults=100&startAt=" + page;
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                string jsonData = await response.Content.ReadAsStringAsync();
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+                TestCaseProjectResponse apiResponse = JsonConvert.DeserializeObject<TestCaseProjectResponse>(jsonData, settings);
+
+                if (apiResponse != null)
+                {
+                    List<JiraTestCaseProject> objtestcase = (from TestCaseProject testcaseproject in apiResponse.values
+                                                             select new JiraTestCaseProject
+                                                             {
+                                                                 Enabled = testcaseproject.enabled,
+                                                                 ProjectID = testcaseproject.id,
+                                                                 JiraProjectID = testcaseproject.jiraProjectId,
+                                                                 Key = testcaseproject.key
+                                                             }).ToList();
+                    allJiraTestCasesProject.AddRange(objtestcase);
+                }
+            }
+            string testcaseprojectjson = "[]";
+            testcaseprojectjson = JsonConvert.SerializeObject(allJiraTestCasesProject);
+            string jiraTestCasesProjectFileName = string.Format("{0}.json", "JIRA_Test_Cases_Projects");
+            await SaveJSONFileAsync(context, jiraTestCasesProjectFileName, testcaseprojectjson);
+        }
+        public static async Task GetJiraTestCasesStatusesAsync(ExecutionContext context, HttpClient client)
+        {
+            List<JiraTestCaseStatus> allTestCaseStatus = new List<JiraTestCaseStatus>();
+            string url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/statuses?maxResults=1";
+
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JiraAPICredentials.ZephyrAccessToken);
+            HttpResponseMessage testcasepaggingresponse = await client.GetAsync(url).ConfigureAwait(false);
+            testcasepaggingresponse.EnsureSuccessStatusCode();
+            string paggingJsonData = await testcasepaggingresponse.Content.ReadAsStringAsync();
+            var paggingsettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+            JiraTestCaseStatuesResponse paggingobj = JsonConvert.DeserializeObject<JiraTestCaseStatuesResponse>(paggingJsonData, paggingsettings);
+
+            List<int> pages = new List<int>();
+            if (paggingobj != null && paggingobj.total >= 100)
+            {
+                int lastPage = paggingobj.total / 100;
+                for (int i = 0; i <= lastPage; i++)
+                {
+                    pages.Add(i * 100);
+                }
+            }
+            else
+            {
+                pages.Add(0);
+            }
+
+            foreach (int page in pages)
+            {
+                url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/statuses?maxResults=100&startAt=" + page;
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                string jsonData = await response.Content.ReadAsStringAsync();
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+                JiraTestCaseStatuesResponse jiraAPIResponse = JsonConvert.DeserializeObject<JiraTestCaseStatuesResponse>(jsonData, settings);
+
+                if (jiraAPIResponse != null)
+                {
+                    List<JiraTestCaseStatus> objtestcase = (from TestCaseStatus testcasestatus in jiraAPIResponse.values
+                                                            select new JiraTestCaseStatus
+                                                            {
+                                                                Archived = testcasestatus.archived,
+                                                                Color = testcasestatus.color,
+                                                                Default = testcasestatus.@default,
+                                                                Index = testcasestatus.index,
+                                                                Name = testcasestatus.name,
+                                                                ProjectID = testcasestatus.project != null ? testcasestatus.project.id : 0,
+                                                                Description = testcasestatus.description,
+                                                                StatusID = testcasestatus.id,
+                                                            }).ToList();
+                    allTestCaseStatus.AddRange(objtestcase);
+                }
+            }
+            string testcasestatusjson = "[]";
+            testcasestatusjson = JsonConvert.SerializeObject(allTestCaseStatus);
+            string jiraTestCasesStatusFileName = string.Format("{0}.json", "JIRA_Test_Cases_Statues");
+            await SaveJSONFileAsync(context, jiraTestCasesStatusFileName, testcasestatusjson);
+        }
+        public static async Task GetJiraTestCasesPrioritiesAsync(ExecutionContext context, HttpClient client)
+        {
+            List<JiraTestCasePriority> allJiraTestCasesPriorities = new List<JiraTestCasePriority>();
+            string url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/priorities?maxResults=1";
+
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JiraAPICredentials.ZephyrAccessToken);
+            HttpResponseMessage paggingresponse = await client.GetAsync(url).ConfigureAwait(false);
+            paggingresponse.EnsureSuccessStatusCode();
+            string testcaseprioritypaggingJsonData = await paggingresponse.Content.ReadAsStringAsync();
+            var paggingsettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+            JiraTestCasePriorityResponse paggingobj = JsonConvert.DeserializeObject<JiraTestCasePriorityResponse>(testcaseprioritypaggingJsonData, paggingsettings);
+
+            List<int> pages = new List<int>();
+            if (paggingobj != null && paggingobj.total >= 100)
+            {
+                int lastPage = paggingobj.total / 100;
+                for (int i = 0; i <= lastPage; i++)
+                {
+                    pages.Add(i * 100);
+                }
+            }
+            else
+            {
+                pages.Add(0);
+            }
+
+            foreach (int page in pages)
+            {
+                url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/priorities?maxResults=100&startAt=" + page;
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                string jsonData = await response.Content.ReadAsStringAsync();
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+                JiraTestCasePriorityResponse jiraAPIResponse = JsonConvert.DeserializeObject<JiraTestCasePriorityResponse>(jsonData, settings);
+
+                if (jiraAPIResponse != null)
+                {
+                    List<JiraTestCasePriority> objtestcase = (from TestCasePriority testcasepriority in jiraAPIResponse.values
+                                                              select new JiraTestCasePriority
+                                                              {
+                                                                  Default = testcasepriority.@default,
+                                                                  Description = testcasepriority.description,
+                                                                  PriorityID = testcasepriority.id,
+                                                                  Index = testcasepriority.index,
+                                                                  ProjectID = testcasepriority.project.id,
+                                                                  Name = testcasepriority.name
+                                                              }).ToList();
+                    allJiraTestCasesPriorities.AddRange(objtestcase);
+                }
+            }
+            string json = "[]";
+            json = JsonConvert.SerializeObject(allJiraTestCasesPriorities);
+            string jiraTestCasesFileName = string.Format("{0}.json", "JIRA_Test_Cases_Priorities");
+            await SaveJSONFileAsync(context, jiraTestCasesFileName, json);
+        }
+        public static async Task GetJiraTestCasesCyclesAsync(ExecutionContext context, HttpClient client)
+        {
+            List<JiraTestCaseCycle> allJiraTestCasesCycles = new List<JiraTestCaseCycle>();
+            string url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/testcycles?maxResults=1";
+
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JiraAPICredentials.ZephyrAccessToken);
+            HttpResponseMessage paggingresponse = await client.GetAsync(url).ConfigureAwait(false);
+            paggingresponse.EnsureSuccessStatusCode();
+            string paggingJsonData = await paggingresponse.Content.ReadAsStringAsync();
+            var paggingsettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+            JiraTestCaseCycleResponse paggingobj = JsonConvert.DeserializeObject<JiraTestCaseCycleResponse>(paggingJsonData, paggingsettings);
+
+            List<int> pages = new List<int>();
+            if (paggingobj != null && paggingobj.total >= 100)
+            {
+                int lastPage = paggingobj.total / 100;
+                for (int i = 0; i <= lastPage; i++)
+                {
+                    pages.Add(i * 100);
+                }
+            }
+            else
+            {
+                pages.Add(0);
+            }
+
+            foreach (int page in pages)
+            {
+                url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/testcycles?maxResults=100&startAt=" + page;
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                string jsonData = await response.Content.ReadAsStringAsync();
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+                JiraTestCaseCycleResponse apiResponse = JsonConvert.DeserializeObject<JiraTestCaseCycleResponse>(jsonData, settings);
+
+                if (apiResponse != null)
+                {
+                    List<JiraTestCaseCycle> objtestcase = (from TestCaseCycle testcasepriority in apiResponse.values
+                                                           select new JiraTestCaseCycle
+                                                           {
+                                                               CycleID = testcasepriority.id,
+                                                               Description = testcasepriority.description,
+                                                               Key = testcasepriority.key,
+                                                               OwnerAccountID = testcasepriority.owner != null ? testcasepriority.owner.accountId : "",
+                                                               Name = testcasepriority.name,
+                                                               PlannedEndDate = testcasepriority.plannedEndDate,
+                                                               PlannedStartDate = testcasepriority.plannedStartDate,
+                                                               ProjectID = testcasepriority.project != null ? testcasepriority.project.id : 0,
+                                                               StatusID = testcasepriority.status != null ? testcasepriority.status.id : 0
+                                                           }).ToList();
+                    allJiraTestCasesCycles.AddRange(objtestcase);
+                }
+            }
+            string testcasejson = "[]";
+            testcasejson = JsonConvert.SerializeObject(allJiraTestCasesCycles);
+            string jiraTestCasesFileName = string.Format("{0}.json", "JIRA_Test_Cases_Cycles");
+            await SaveJSONFileAsync(context, jiraTestCasesFileName, testcasejson);
+        }
+        public static async Task GetJiraTestCasesEnvironmentAsync(ExecutionContext context, HttpClient client)
+        {
+            List<JiraTestCaseEnvironment> allJiraTestCasesEnvironments = new List<JiraTestCaseEnvironment>();
+            string url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/environments?maxResults=1";
+
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JiraAPICredentials.ZephyrAccessToken);
+            HttpResponseMessage paggingresponse = await client.GetAsync(url).ConfigureAwait(false);
+            paggingresponse.EnsureSuccessStatusCode();
+            string paggingJsonData = await paggingresponse.Content.ReadAsStringAsync();
+            var paggingsettings1 = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+            TestCaseEnvironmentResponse paggingobj = JsonConvert.DeserializeObject<TestCaseEnvironmentResponse>(paggingJsonData, paggingsettings1);
+
+            List<int> pages = new List<int>();
+            if (paggingobj != null && paggingobj.total >= 100)
+            {
+                int lastPage = paggingobj.total / 100;
+                for (int i = 0; i <= lastPage; i++)
+                {
+                    pages.Add(i * 100);
+                }
+            }
+            else
+            {
+                pages.Add(0);
+            }
+
+            foreach (int page in pages)
+            {
+                url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/environments?maxResults=100&startAt=" + page;
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                string jsonData = await response.Content.ReadAsStringAsync();
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+                TestCaseEnvironmentResponse jiraAPIResponse = JsonConvert.DeserializeObject<TestCaseEnvironmentResponse>(jsonData, settings);
+
+                if (jiraAPIResponse != null)
+                {
+                    List<JiraTestCaseEnvironment> objtestcase = (from TestCaseEnvironment testcaseenv in jiraAPIResponse.values
+                                                                 select new JiraTestCaseEnvironment
+                                                                 {
+                                                                     Archived = testcaseenv.archived,
+                                                                     Description = testcaseenv.description,
+                                                                     EnvironmentID = testcaseenv.id,
+                                                                     Name = testcaseenv.name,
+                                                                     Index = testcaseenv.index,
+                                                                     ProjectID = testcaseenv.project != null ? testcaseenv.project.id : 0
+                                                                 }).ToList();
+                    allJiraTestCasesEnvironments.AddRange(objtestcase);
+                }
+            }
+            string jsonresponse = "[]";
+            jsonresponse = JsonConvert.SerializeObject(allJiraTestCasesEnvironments);
+            string fileName = string.Format("{0}.json", "JIRA_Test_Cases_Environments");
+            await SaveJSONFileAsync(context, fileName, jsonresponse);
+        }
+        public static async Task GetJiraTestCasesExecusionsAsync(ExecutionContext context, HttpClient client)
+        {
+            List<JiraTestCaseExecution> allJiraTestCasesPriorities = new List<JiraTestCaseExecution>();
+            string url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/testexecutions?maxResults=1";
+
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JiraAPICredentials.ZephyrAccessToken);
+            HttpResponseMessage paggingresponse = await client.GetAsync(url).ConfigureAwait(false);
+            paggingresponse.EnsureSuccessStatusCode();
+            string paggingJsonData = await paggingresponse.Content.ReadAsStringAsync();
+            var paggingsettings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+            JiraTestCaseExecutionResponse paggingobj = JsonConvert.DeserializeObject<JiraTestCaseExecutionResponse>(paggingJsonData, paggingsettings);
+
+            List<int> pages = new List<int>();
+            if (paggingobj != null && paggingobj.total >= 100)
+            {
+                int lastPage = paggingobj.total / 100;
+                for (int i = 0; i <= lastPage; i++)
+                {
+                    pages.Add(i * 100);
+                }
+            }
+            else
+            {
+                pages.Add(0);
+            }
+
+            foreach (int page in pages)
+            {
+                url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/testexecutions?maxResults=100&startAt=" + page;
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                string jsonData = await response.Content.ReadAsStringAsync();
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+                JiraTestCaseExecutionResponse apiResponse = JsonConvert.DeserializeObject<JiraTestCaseExecutionResponse>(jsonData, settings);
+
+                if (apiResponse != null)
+                {
+                    List<JiraTestCaseExecution> objtestcase = (from TestCaseExecution testcaseexecution in apiResponse.values
+                                                               select new JiraTestCaseExecution
+                                                               {
+                                                                   ActualEndDate = testcaseexecution.actualEndDate,
+                                                                   AssignedToID = testcaseexecution.assignedToId,
+                                                                   Automated = testcaseexecution.automated,
+                                                                   Comment = testcaseexecution.comment,
+                                                                   EnvironmentID = testcaseexecution.environment != null ? testcaseexecution.environment.id : 0,
+                                                                   EstimatedTime = testcaseexecution.estimatedTime,
+                                                                   ExecutedByID = testcaseexecution.executedById,
+                                                                   ExecutionID = testcaseexecution.id,
+                                                                   ExecutionTime = testcaseexecution.executionTime,
+                                                                   Key = testcaseexecution.key,
+                                                                   ProjectID = testcaseexecution.project != null ? testcaseexecution.project.id : 0,
+                                                                   StatusID = testcaseexecution.testExecutionStatus != null ? testcaseexecution.testExecutionStatus.id : 0,
+                                                                   TestCaseID = testcaseexecution.testCase != null ? testcaseexecution.testCase.id : 0,
+                                                                   TestCycleID = testcaseexecution.testCycle != null ? testcaseexecution.testCycle.id : 0
+                                                               }).ToList();
+                    allJiraTestCasesPriorities.AddRange(objtestcase);
+                }
+            }
+            string json = "[]";
+            json = JsonConvert.SerializeObject(allJiraTestCasesPriorities);
+            string fileName = string.Format("{0}.json", "JIRA_Test_Cases_Executions");
+            await SaveJSONFileAsync(context, fileName, json);
+        }
         public static async Task SaveJSONFileAsync(ExecutionContext context, string filename, string issuesJson)
         {
             var config = new ConfigurationBuilder()
@@ -411,6 +911,5 @@ namespace MRNAFExportExcelToCSV
             var destBlob = container.GetBlockBlobReference($"Jira/{filename}");
             await destBlob.UploadTextAsync(issuesJson);
         }
-
     }
 }
