@@ -842,12 +842,14 @@ namespace MRNAFExportExcelToCSV
                                                                     if (directHireColumn != null && daysOpenIndexColumn > -1 && daysOpenIndexColumn == dataCellIndex && currentExcelSheet.GetRow(rowIndex).GetCell(dataCellIndex).CellStyle.FillPattern == FillPattern.SolidForeground)
                                                                     {
                                                                         var scolor = ((NPOI.XSSF.UserModel.XSSFColor)currentExcelSheet.GetRow(rowIndex).GetCell(dataCellIndex).CellStyle.FillForegroundColorColor);
-
-                                                                        Color color = Color.FromArgb(scolor.ARGB[0], scolor.ARGB[1], scolor.ARGB[2], scolor.ARGB[3]);
-                                                                        if (color == Color.FromArgb(255, 255, 229, 255))
+                                                                        if(scolor!=null && scolor.ARGB!=null)
                                                                         {
-                                                                            directHireColumn.ColumnValue = "1";
-                                                                        }
+                                                                            Color color = Color.FromArgb(scolor.ARGB[0], scolor.ARGB[1], scolor.ARGB[2], scolor.ARGB[3]);
+                                                                            if (color == Color.FromArgb(255, 255, 229, 255))
+                                                                            {
+                                                                                directHireColumn.ColumnValue = "1";
+                                                                            }
+                                                                        }                                                                       
 
                                                                     }
 
