@@ -823,12 +823,14 @@ namespace MRNAFExportExcelToCSV
                                                                      
                                                                     if (currentcell.CellType == CellType.Numeric && currentcell.DateCellValue != DateTime.MinValue)
                                                                     {
-
-                                                                        cellText = currentcell.DateCellValue.ToString("dd'/'MM'/'yyyy");
+                                                                        if (cellText.Contains("/") || cellText.Contains("-") && cellText.Length >= 5 && cellText.Length <= 11)
+                                                                        {
+                                                                            cellText = currentcell.DateCellValue.ToString("dd'/'MM'/'yyyy");
+                                                                        }
                                                                     }
                                                                     else if (currentcell.CellType == CellType.Formula && currentcell.DateCellValue != DateTime.MinValue)
                                                                     {
-                                                                        if ( cellText.Contains("/") || cellText.Contains("-") && cellText.Length <= 11)
+                                                                        if ( cellText.Contains("/") || cellText.Contains("-") && cellText.Length >= 5 && cellText.Length <= 11)
                                                                         {
                                                                             cellText = currentcell.DateCellValue.ToString("dd'/'MM'/'yyyy");
                                                                         }
