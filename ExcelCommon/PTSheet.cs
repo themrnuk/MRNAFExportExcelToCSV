@@ -40,6 +40,14 @@ namespace MRNAFExportExcelToCSV
                     {
                         return new ExcelSheets() { SheetName = excelSheetName, CsvFileName = $"HTS_PT_{projectCode}_{countryCode}_DCF.csv", TableName = "HTS_PT_DCF", FolderName = folderName, HeaderRow = 2 };
                     }
+                case "Study Contacts":
+                    {
+                        return new ExcelSheets() { SheetName = excelSheetName, CsvFileName = $"HTS_PT_{projectCode}_{countryCode}_SC.csv", TableName = "HTS_PT_SC", FolderName = folderName, HeaderRow = 1 };
+                    }
+                case "CRA List & Training":
+                    {
+                        return new ExcelSheets() { SheetName = excelSheetName, CsvFileName = $"HTS_PT_{projectCode}_{countryCode}_CLT.csv", TableName = "HTS_PT_CLT", FolderName = folderName };
+                    }
                 default:
                     {
                         return null;
