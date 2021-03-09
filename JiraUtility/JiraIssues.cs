@@ -12,7 +12,6 @@ namespace MRNAFExportExcelToCSV.JiraUtility
         public string Creator { get; set; }
         public DateTime Created { get; set; }
         public string Description { get; set; }
-
         public string ProjectID { get; set; }
         public string Project { get; set; }
         public string Reporter { get; set; }
@@ -24,6 +23,9 @@ namespace MRNAFExportExcelToCSV.JiraUtility
         public int RemainingEstimateSeconds { get; set; }
         public int TimeSpentSeconds { get; set; }
         public string Assignee { get; set; }
+        public string IssueType { get; set; }
+        public bool IsBacklogItem { get; set; }
+        public string ParentIssueKey { get; set; }
         public DateTime Updated { get; set; }
         public string Status { get; set; }
     }

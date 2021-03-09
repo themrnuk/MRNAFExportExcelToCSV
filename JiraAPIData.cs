@@ -118,7 +118,7 @@ namespace MRNAFExportExcelToCSV
 
                     foreach (int page in pages)
                     {
-                        url = $"{JiraAPICredentials.APIBaseUrl}/search?fields=comment,worklog,summary,description,customfield_10020,customfield_10024,customfield_10016,assignee,creator,reporter,priority,project,timetracking,labels,components,created,updated,status&expand=changelog&maxResults=100&startAt=" + page;
+                        url = $"{JiraAPICredentials.APIBaseUrl}/search?fields=comment,worklog,summary,description,customfield_10020,customfield_10024,customfield_10016,assignee,creator,reporter,priority,project,timetracking,labels,components,created,updated,status,issuetype,parent,customfield_10014&expand=changelog&maxResults=100&startAt=" + page;
                         HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
                         response.EnsureSuccessStatusCode();
                         string jsonData = await response.Content.ReadAsStringAsync();
@@ -150,8 +150,11 @@ namespace MRNAFExportExcelToCSV
                                                            TimeSpentSeconds = issue.fields.timetracking != null ? issue.fields.timetracking.timeSpentSeconds : 0,
                                                            Reporter = issue.fields.reporter != null ? issue.fields.reporter.displayName : "",
                                                            Status = issue.fields.status != null ? issue.fields.status.name : "",
-                                                           StoryPointEstimate= issue.fields.customfield_10016,
+                                                           StoryPointEstimate = issue.fields.customfield_10016,
                                                            StoryPoints = issue.fields.customfield_10024,
+                                                           IssueType = issue.fields.issuetype != null ? issue.fields.issuetype.name : "",
+                                                           IsBacklogItem = issue.fields.customfield_10020!=null && issue.fields.customfield_10020.Count>0?false:true,
+                                                           ParentIssueKey= issue.fields.parent!=null? issue.fields.parent.key: issue.fields.customfield_10014,
                                                            Summary = issue.fields.summary,
                                                            Updated = issue.fields.updated,
                                                        }).ToList();
@@ -396,7 +399,7 @@ namespace MRNAFExportExcelToCSV
                     string jiraIssueCommentFileName = string.Format("{0}.json", "JIRA_Issue_Comments");
                     string jiraIssueHistoryFileName = string.Format("{0}.json", "JIRA_Issue_History");
                     string jiraIssueWorklogFileName = string.Format("{0}.json", "JIRA_Issue_Worklogs");
-                    
+
 
 
                     await SaveJSONFileAsync(context, jiraIssueFileName, issuesJson);
@@ -419,7 +422,7 @@ namespace MRNAFExportExcelToCSV
             List<JiraTestCase> allJiraTestCases = new List<JiraTestCase>();
             string url = $"{JiraAPICredentials.ZephyrAPIBaseUrl}/testcases?maxResults=1";
 
-           
+
             client.DefaultRequestHeaders.Clear();
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

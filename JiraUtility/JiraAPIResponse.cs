@@ -213,6 +213,18 @@ namespace MRNAFExportExcelToCSV.JiraUtility
         public StatusCategory statusCategory { get; set; }
     }
 
+    public class IssueType
+    {
+        public string self { get; set; }
+        public string id { get; set; }
+        public string description { get; set; }
+        public string iconUrl { get; set; }
+        public string name { get; set; }
+        public bool subtask { get; set; }
+        public int avatarId { get; set; }
+    }
+
+
     public class Fields
     {
         public string summary { get; set; }
@@ -233,7 +245,16 @@ namespace MRNAFExportExcelToCSV.JiraUtility
         public Assignee assignee { get; set; }
         public DateTime updated { get; set; }
         public Status status { get; set; }
+        public IssueType issuetype { get; set; }
+        public string customfield_10014 { get; set; }
+        public parent parent { get; set; }
     }
+    public class parent
+    {
+        public string id { get; set; }
+        public string key { get; set; }
+    }
+
 
     public class Issue
     {
